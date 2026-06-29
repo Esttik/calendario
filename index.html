@@ -275,26 +275,28 @@ return {y:anio, m:m, d:dia, ya:anioDicho};
 }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const micDot=document.getElementById('micDot');
-let rec=null, escuchando=false, escuchaTimer=null, commitTimer=null, candidato=null, buffer='';
-function pararEscucha(){ escuchando=false; clearTimeout(escuchaTimer); clearTimeout(commitTimer); candidato=null; buffer=''; if(rec){ try{rec.stop();}catch(e){} } micDot.classList.remove('on'); }
-function confirmarCaptura(){ micDot.classList.remove('on'); micDot.classList.add('ok'); setTimeout(()=>micDot.classList.remove('ok'),1000); }
-function iniciarEscucha(){
-if(escuchando){ pararEscucha(); return; }
-if(!SR){ abrirManual(); return; }
-try{ rec=new SR(); }catch(e){ abrirManual(); return; }
-rec.lang='es-ES'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=2;
-buffer=''; candidato=null;
-rec.onresult=function(ev){
-let txt='';
-for(let i=ev.resultIndex;i<ev.results.length;i++){ txt+=ev.results[i][0].transcript+' '; }
-buffer=(buffer+' '+txt).slice(-260);
-const f=parseFecha(buffer)||parseFecha(txt);
+let rec=null, escuchando=false, escuchaTimer=null, commitTimer=null, candidato=null;
+function procesarTexto(txt){
+const f=parseFecha(txt);
 if(f){
 candidato=f;
 clearTimeout(commitTimer);
 const espera=f.ya?900:1700;
 commitTimer=setTimeout(()=>{ if(candidato&&escuchando){ const c=candidato; confirmarCaptura(); pararEscucha(); irAFecha(c.y,c.m,c.d); } },espera);
 }
+}
+function pararEscucha(){ escuchando=false; clearTimeout(escuchaTimer); clearTimeout(commitTimer); candidato=null; if(rec){ try{rec.stop();}catch(e){} } micDot.classList.remove('on'); }
+function confirmarCaptura(){ micDot.classList.remove('on'); micDot.classList.add('ok'); setTimeout(()=>micDot.classList.remove('ok'),1000); }
+function iniciarEscucha(){
+if(escuchando){ pararEscucha(); return; }
+if(!SR){ abrirManual(); return; }
+try{ rec=new SR(); }catch(e){ abrirManual(); return; }
+rec.lang='es-ES'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=2;
+candidato=null;
+rec.onresult=function(ev){
+let txt='';
+for(let i=0;i<ev.results.length;i++){ txt+=ev.results[i][0].transcript+' '; }
+procesarTexto(txt);
 };
 rec.onerror=function(ev){ pararEscucha(); if(ev.error==='not-allowed'||ev.error==='service-not-allowed'||ev.error==='network'){ abrirManual(); } };
 rec.onend=function(){ if(escuchando){ try{rec.start();}catch(e){} } };
